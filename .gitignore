@@ -1,0 +1,29 @@
+# Бинарные файлы
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Артефакты тестирования и покрытия
+coverage.out
+*.coverprofile
+profile.cov
+
+# Рабочие файлы Go
+go.work
+go.work.sum
+
+# Зависимости (если не используются модули в режиме vendor)
+vendor/
+
+# Переменные окружения
+.env
+
+# Настройки редакторов и IDE
+.idea/
+.vscode/
+*.swp
+*.swo
