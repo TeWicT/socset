@@ -10,9 +10,9 @@
 - [x] Описание сервисов
 - [x] Каталог событий
 - [x] Инфра и локальная разработка
-- [ ] Monorepo skeleton (`services/`, `pkg/`, `deploy/`)
-- [ ] `docker-compose` с инфраструктурой
-- [ ] `.env.example`, Makefile/Task
+- [x] Monorepo skeleton (`services/`, `pkg/`, `deploy/`)
+- [x] `docker-compose` с инфраструктурой
+- [x] `.env.example`, Makefile/Task
 
 **Критерий готовности:** можно поднять Postgres/Kafka/Redis/ES/MinIO/Jaeger одной командой.
 
