@@ -3,6 +3,8 @@ package main
 import (
 	"auth-service/internal/config"
 	authv1 "auth-service/internal/gen/auth/v1"
+	"auth-service/internal/repository/postgres"
+	"auth-service/internal/service"
 	"auth-service/internal/transport/grpcserver"
 	"context"
 	"log"
@@ -46,7 +48,9 @@ func main() {
 
 	//grpc
 	grpcServer := grpc.NewServer()
-	srv := &grpcserver.Server{}
+	repo := postgres.CreateUserRepo(pool)
+	authSvc := service.NewAuthService(repo)
+	srv := &grpcserver.Server{Auth: authSvc}
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 	reflection.Register(grpcServer)
 
