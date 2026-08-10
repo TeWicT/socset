@@ -76,6 +76,31 @@ func (service *AuthService) Login(ctx context.Context, login, password string) (
 	return user.ID, accessToken, raw, nil
 }
 
+var ErrInvalidRefresh = errors.New("invalid refresh token")
+
+func (service *AuthService) Refresh(ctx context.Context, raw string) (access domain.AccessToken, newRaw string, err error) {
+	if raw == "" {
+		return domain.AccessToken{}, "", ErrEmptyData
+	}
+	hash := token.HashRefreshToken(raw)
+	session, err := service.sessions.FindByHash(ctx, hash)
+	if err != nil {
+		if errors.Is(err, domain.ErrSessionNotFound) {
+			return domain.AccessToken{}, "", ErrInvalidRefresh
+		}
+		return domain.AccessToken{}, "", err
+	}
+	err = service.sessions.Revoke(ctx, session.ID)
+	if err != nil {
+		return domain.AccessToken{}, "", err
+	}
+	access, newRaw, err = service.issueTokens(ctx, session.UserID)
+	if err != nil {
+		return domain.AccessToken{}, "", err
+	}
+	return access, newRaw, nil
+}
+
 func (service *AuthService) issueTokens(ctx context.Context, userID uuid.UUID) (accessToken domain.AccessToken, raw string, err error) {
 	access, expiresIn, err := token.GenerateAccessToken(userID, service.jwtSecret)
 

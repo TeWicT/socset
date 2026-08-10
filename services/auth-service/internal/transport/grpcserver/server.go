@@ -56,7 +56,18 @@ func (s *Server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.L
 }
 
 func (s *Server) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	access, newRaw, err := s.Auth.Refresh(ctx, req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, service.ErrEmptyData) {
+			return nil, status.Error(codes.InvalidArgument, "empty data")
+		}
+		if errors.Is(err, service.ErrInvalidRefresh) {
+			return nil, status.Error(codes.Unauthenticated, "invalid refresh")
+		}
+		log.Printf("internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &authv1.RefreshResponse{AccessToken: access.Access, RefreshToken: newRaw, ExpiresIn: access.ExpiresIn}, nil
 }
 
 func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
