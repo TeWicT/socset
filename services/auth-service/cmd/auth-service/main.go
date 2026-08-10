@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		log.Fatal("err load .env")
 	}
-	cfg, err := config.CreateConfig(os.Getenv("GRPC_ADDR"), os.Getenv("POSTGRES_URL"))
+	cfg, err := config.CreateConfig(os.Getenv("GRPC_ADDR"), os.Getenv("POSTGRES_URL"), os.Getenv("JWT_SECRET"))
 	if err != nil {
 		log.Fatal("err load .env")
 	}
@@ -48,8 +48,9 @@ func main() {
 
 	//grpc
 	grpcServer := grpc.NewServer()
-	repo := postgres.CreateUserRepo(pool)
-	authSvc := service.NewAuthService(repo)
+	userrepo := postgres.CreateUserRepo(pool)
+	sessionrepo := postgres.CreateSessionRepo(pool)
+	authSvc := service.NewAuthService(userrepo, sessionrepo, cfg.JWTSecret)
 	srv := &grpcserver.Server{Auth: authSvc}
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 	reflection.Register(grpcServer)

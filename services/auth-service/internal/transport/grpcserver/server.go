@@ -20,7 +20,7 @@ type Server struct {
 
 func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*authv1.RegisterResponse, error) {
 	user := domain.User{Email: req.Email, Password: req.Password, Username: req.Username}
-	userID, err := s.Auth.Register(ctx, user)
+	userID, accessToken, raw, err := s.Auth.Register(ctx, user)
 	if err != nil {
 		if errors.Is(err, domain.ErrEmailOrUsernameTaken) {
 			return nil, status.Error(codes.AlreadyExists, "email or username busy")
@@ -35,7 +35,7 @@ func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*au
 		log.Printf("register failed: %v", err)
 		return nil, status.Error(codes.Internal, "internal error")
 	}
-	res := &authv1.RegisterResponse{UserId: userID.String(), AccessToken: "", RefreshToken: "", ExpiresIn: 0}
+	res := &authv1.RegisterResponse{UserId: userID.String(), AccessToken: accessToken.Access, RefreshToken: raw, ExpiresIn: accessToken.ExpiresIn}
 	return res, nil
 }
 
