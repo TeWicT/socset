@@ -101,6 +101,23 @@ func (service *AuthService) Refresh(ctx context.Context, raw string) (access dom
 	return access, newRaw, nil
 }
 
+func (service *AuthService) Logout(ctx context.Context, raw string) error {
+	if raw == "" {
+		return ErrEmptyData
+	}
+	hash := token.HashRefreshToken(raw)
+	session, err := service.sessions.FindByHash(ctx, hash)
+	if err != nil {
+		if errors.Is(err, domain.ErrSessionNotFound) {
+			return nil
+		}
+		return err
+
+	}
+
+	return service.sessions.Revoke(ctx, session.ID)
+}
+
 func (service *AuthService) issueTokens(ctx context.Context, userID uuid.UUID) (accessToken domain.AccessToken, raw string, err error) {
 	access, expiresIn, err := token.GenerateAccessToken(userID, service.jwtSecret)
 

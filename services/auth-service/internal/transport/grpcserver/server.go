@@ -71,5 +71,13 @@ func (s *Server) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*auth
 }
 
 func (s *Server) Logout(ctx context.Context, req *authv1.LogoutRequest) (*authv1.LogoutResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	err := s.Auth.Logout(ctx, req.RefreshToken)
+	if err != nil {
+		if errors.Is(err, service.ErrEmptyData) {
+			return nil, status.Error(codes.InvalidArgument, "empty data")
+		}
+		log.Printf("internal error: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &authv1.LogoutResponse{}, nil
 }
