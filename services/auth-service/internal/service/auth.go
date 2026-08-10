@@ -45,23 +45,55 @@ func (service *AuthService) Register(ctx context.Context, user domain.User) (use
 	if err != nil {
 		return uuid.Nil, domain.AccessToken{}, "", err
 	}
+	accessToken, raw, err = service.issueTokens(ctx, userID)
+	if err != nil {
+		return uuid.Nil, domain.AccessToken{}, "", err
+	}
+	return userID, accessToken, raw, nil
+}
+
+var ErrInvalidCredentials = errors.New("invalid credentials")
+
+func (service *AuthService) Login(ctx context.Context, login, password string) (userID uuid.UUID, accessToken domain.AccessToken, rawRefresh string, err error) {
+	if login == "" || password == "" {
+		return uuid.Nil, domain.AccessToken{}, "", ErrEmptyData
+	}
+	user, err := service.users.FindByLogin(ctx, login)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFound) {
+			return uuid.Nil, domain.AccessToken{}, "", ErrInvalidCredentials
+		}
+		return uuid.Nil, domain.AccessToken{}, "", err
+	}
+	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password))
+	if err != nil {
+		return uuid.Nil, domain.AccessToken{}, "", ErrInvalidCredentials
+	}
+	accessToken, raw, err := service.issueTokens(ctx, user.ID)
+	if err != nil {
+		return uuid.Nil, domain.AccessToken{}, "", err
+	}
+	return user.ID, accessToken, raw, nil
+}
+
+func (service *AuthService) issueTokens(ctx context.Context, userID uuid.UUID) (accessToken domain.AccessToken, raw string, err error) {
 	access, expiresIn, err := token.GenerateAccessToken(userID, service.jwtSecret)
 
 	if err != nil {
 		log.Print("err create access token", err, userID)
-		return userID, domain.AccessToken{}, "", err
+		return domain.AccessToken{}, "", err
 	}
 	accessToken = domain.AccessToken{Access: access, ExpiresIn: expiresIn}
 	raw, hash, expiresAt, err := token.GenerateRefreshToken()
 
 	if err != nil {
 		log.Print("err create refresh token", err, userID)
-		return userID, domain.AccessToken{}, "", err
+		return domain.AccessToken{}, "", err
 	}
-	refreshToken := domain.RefreshToken{Hash: hash, ExpiresAt: expiresAt}
+	refreshToken := domain.RefreshToken{Raw: raw, Hash: hash, ExpiresAt: expiresAt}
 	err = service.sessions.Create(ctx, userID, refreshToken.Hash, refreshToken.ExpiresAt)
 	if err != nil {
-		return userID, domain.AccessToken{}, "", err
+		return domain.AccessToken{}, "", err
 	}
-	return userID, accessToken, raw, nil
+	return accessToken, refreshToken.Raw, nil
 }

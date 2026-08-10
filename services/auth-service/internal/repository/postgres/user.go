@@ -7,6 +7,7 @@ import (
 	"errors"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -38,4 +39,24 @@ func (r *UserRepo) Create(ctx context.Context, user domain.User) (userID uuid.UU
 		return uuid.Nil, err
 	}
 	return id, nil
+}
+
+const findByLoginQuery = `
+SELECT id,email,username,password_hash
+FROM users
+WHERE email = $1 OR username = $1
+LIMIT 1
+`
+
+func (r *UserRepo) FindByLogin(ctx context.Context, login string) (domain.User, error) {
+	var id uuid.UUID
+	var email, username, password_hash string
+	err := r.pool.QueryRow(ctx, findByLoginQuery, login).Scan(&id, &email, &username, &password_hash)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.User{}, domain.ErrUserNotFound
+		}
+		return domain.User{}, err
+	}
+	return domain.User{ID: id, Email: email, Username: username, PasswordHash: password_hash}, nil
 }

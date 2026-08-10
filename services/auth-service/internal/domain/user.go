@@ -15,3 +15,4 @@ type User struct {
 }
 
 var ErrEmailOrUsernameTaken = errors.New("email or username busy")
+var ErrUserNotFound = errors.New("user not found")

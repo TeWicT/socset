@@ -9,4 +9,5 @@ import (
 
 type UserRepo interface {
 	Create(ctx context.Context, user domain.User) (userID uuid.UUID, err error)
+	FindByLogin(ctx context.Context, login string) (domain.User, error)
 }

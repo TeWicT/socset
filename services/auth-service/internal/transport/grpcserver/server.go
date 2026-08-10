@@ -40,7 +40,19 @@ func (s *Server) Register(ctx context.Context, req *authv1.RegisterRequest) (*au
 }
 
 func (s *Server) Login(ctx context.Context, req *authv1.LoginRequest) (*authv1.LoginResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	userID, access, raw, err := s.Auth.Login(ctx, req.Login, req.Password)
+	if err != nil {
+		if errors.Is(err, service.ErrEmptyData) {
+			return nil, status.Error(codes.InvalidArgument, "empty data")
+		}
+		if errors.Is(err, service.ErrInvalidCredentials) {
+			return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+		}
+		log.Printf("login failed: %v", err)
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	res := &authv1.LoginResponse{UserId: userID.String(), AccessToken: access.Access, RefreshToken: raw, ExpiresIn: access.ExpiresIn}
+	return res, nil
 }
 
 func (s *Server) Refresh(ctx context.Context, req *authv1.RefreshRequest) (*authv1.RefreshResponse, error) {
