@@ -2,9 +2,9 @@
 
 Реализация поэтапная. Каждая фаза даёт работающий вертикальный срез.
 
-## - [x] Фаза 0 — Документация и каркас репозитория
+## -  Фаза 0 — Документация и каркас репозитория
 
-**Статус:** в процессе (документация)
+**Статус:** Готова
 
 - [x] Архитектура, ADR, владение данными
 - [x] Описание сервисов
@@ -20,14 +20,16 @@
 
 ## Фаза 1 — Identity skeleton
 
+**Статус:** В процессе
+
 **Сервисы:** api-gateway, auth-service, profile-service (минимум)
 
 - [x] Регистрация / логин / refresh / logout
-- [] JWT на gateway
-- [] Создание профиля по `user.registered` (outbox → Kafka)
-- [] `GET /profiles/{id}`, `PATCH /profiles/me`
-- [] OTel + structured logs
-- [] OpenAPI для auth и profile
+- [-] JWT на gateway
+- [-] Создание профиля по `user.registered` (outbox → Kafka)
+- [-] `GET /profiles/{id}`, `PATCH /profiles/me`
+- [-] OTel + structured logs
+- [-] OpenAPI для auth и profile
 
 **Критерий:** пользователь регистрируется, логинится, видит/редактирует профиль через gateway.
 
