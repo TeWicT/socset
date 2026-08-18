@@ -25,6 +25,18 @@ type LoginHTTPRequest struct {
 	Password string `json:"password"`
 }
 
+type RefreshHTTPRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+type RefreshHTTPResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in"`
+}
+
+type LogoutHTTPRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
 type Handler struct {
 	auth authv1.AuthServiceClient
 }
@@ -75,5 +87,47 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var loginResponse AuthHTTPResponse
 	loginResponse = AuthHTTPResponse{UserID: res.UserId, AccessToken: res.AccessToken, RefreshToken: res.RefreshToken, ExpiresIn: res.ExpiresIn}
 	writeJSON(w, loginResponse)
+
+}
+
+func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+	if !isPOSTAndJSON(w, r) {
+		return
+	}
+	var refreshRequest RefreshHTTPRequest
+	err := json.NewDecoder(r.Body).Decode(&refreshRequest)
+	if err != nil {
+		w.WriteHeader(400)
+		fmt.Fprint(w, "error json")
+		return
+	}
+	res, err := h.auth.Refresh(r.Context(), &authv1.RefreshRequest{RefreshToken: refreshRequest.RefreshToken})
+	if err != nil {
+		mapErrors(err, w)
+		return
+	}
+	var refreshResponse RefreshHTTPResponse
+	refreshResponse = RefreshHTTPResponse{AccessToken: res.AccessToken, RefreshToken: res.RefreshToken, ExpiresIn: res.ExpiresIn}
+	writeJSON(w, refreshResponse)
+}
+
+func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+	if !isPOSTAndJSON(w, r) {
+		return
+	}
+
+	var logoutHTTPRequest LogoutHTTPRequest
+	err := json.NewDecoder(r.Body).Decode(&logoutHTTPRequest)
+	if err != nil {
+		w.WriteHeader(400)
+		fmt.Fprint(w, "error json")
+		return
+	}
+	_, err = h.auth.Logout(r.Context(), &authv1.LogoutRequest{RefreshToken: logoutHTTPRequest.RefreshToken})
+	if err != nil {
+		mapErrors(err, w)
+		return
+	}
+	writeJSON(w, struct{}{})
 
 }

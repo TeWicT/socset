@@ -15,6 +15,8 @@ func NewRouter(authclient authv1.AuthServiceClient) *http.ServeMux {
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("/api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("/api/v1/auth/refresh", authHandler.Refresh)
+	mux.HandleFunc("/api/v1/auth/logout", authHandler.Logout)
 	return mux
 }
 
