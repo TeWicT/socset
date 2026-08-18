@@ -3,11 +3,12 @@ package router
 import (
 	authv1 "api-gateway/internal/gen/auth/v1"
 	"api-gateway/internal/handlers/auth"
+	"api-gateway/internal/middleware"
 	"fmt"
 	"net/http"
 )
 
-func NewRouter(authclient authv1.AuthServiceClient) *http.ServeMux {
+func NewRouter(authclient authv1.AuthServiceClient, jwtSecret string) *http.ServeMux {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(authclient)
 
@@ -17,6 +18,8 @@ func NewRouter(authclient authv1.AuthServiceClient) *http.ServeMux {
 	mux.HandleFunc("/api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("/api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("/api/v1/auth/logout", authHandler.Logout)
+	jwtMw := middleware.JWT(jwtSecret)
+	mux.Handle("GET /api/v1/auth/me", jwtMw(http.HandlerFunc(authHandler.Me)))
 	return mux
 }
 

@@ -2,6 +2,7 @@ package auth
 
 import (
 	authv1 "api-gateway/internal/gen/auth/v1"
+	"api-gateway/internal/middleware"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -130,4 +131,12 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, struct{}{})
 
+}
+func (h *Handler) Me(w http.ResponseWriter, r *http.Request) {
+	id, ok := middleware.UserIDFromContext(r.Context())
+	if !ok {
+		w.WriteHeader(401)
+		return
+	}
+	writeJSON(w, map[string]string{"user_id": id})
 }

@@ -18,8 +18,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"))
-
+	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("JWT_SECRET"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	conn, err := grpc.NewClient(cfg.GRPCAddrAuth, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
@@ -27,7 +29,7 @@ func main() {
 	defer conn.Close()
 	authclient := authv1.NewAuthServiceClient(conn)
 
-	err = http.ListenAndServe(cfg.HttpAddr, router.NewRouter(authclient))
+	err = http.ListenAndServe(cfg.HttpAddr, router.NewRouter(authclient, cfg.JWTSecret))
 	if err != nil {
 		log.Fatal(err)
 	}
