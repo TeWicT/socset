@@ -20,21 +20,27 @@ func CreateUserRepo(pool *pgxpool.Pool) repository.UserRepo {
 	return &UserRepo{pool: pool}
 }
 
+type querier interface {
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 const createUserQuery = `
 INSERT INTO users (email,username,password_hash)
 VALUES ($1, $2, $3)
 RETURNING id
 `
 
-func (r *UserRepo) Create(ctx context.Context, user domain.User) (userID uuid.UUID, err error) {
+func (r *UserRepo) Create(ctx context.Context, user domain.User) (uuid.UUID, error) {
+	return insertUser(ctx, r.pool, user)
+}
+
+func insertUser(ctx context.Context, q querier, user domain.User) (uuid.UUID, error) {
 	var id uuid.UUID
-	err = r.pool.QueryRow(ctx, createUserQuery, user.Email, user.Username, user.PasswordHash).Scan(&id)
+	err := q.QueryRow(ctx, createUserQuery, user.Email, user.Username, user.PasswordHash).Scan(&id)
 	if err != nil {
 		var pgErr *pgconn.PgError
-		if errors.As(err, &pgErr) {
-			if pgErr.Code == "23505" {
-				return uuid.Nil, domain.ErrEmailOrUsernameTaken
-			}
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return uuid.Nil, domain.ErrEmailOrUsernameTaken
 		}
 		return uuid.Nil, err
 	}

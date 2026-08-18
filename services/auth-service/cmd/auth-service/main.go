@@ -50,7 +50,9 @@ func main() {
 	grpcServer := grpc.NewServer()
 	userrepo := postgres.CreateUserRepo(pool)
 	sessionrepo := postgres.CreateSessionRepo(pool)
-	authSvc := service.NewAuthService(userrepo, sessionrepo, cfg.JWTSecret)
+	_ = postgres.CreateOutboxRepo(pool)
+	registerrepo := postgres.CreateRegisterRepo(pool)
+	authSvc := service.NewAuthService(userrepo, sessionrepo, registerrepo, cfg.JWTSecret)
 	srv := &grpcserver.Server{Auth: authSvc}
 	authv1.RegisterAuthServiceServer(grpcServer, srv)
 	reflection.Register(grpcServer)

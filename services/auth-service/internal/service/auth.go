@@ -2,6 +2,7 @@ package service
 
 import (
 	"auth-service/internal/domain"
+	"auth-service/internal/events"
 	"auth-service/internal/repository"
 	"auth-service/internal/token"
 	"context"
@@ -14,16 +15,18 @@ import (
 )
 
 type AuthService struct {
-	users     repository.UserRepo
-	sessions  repository.SessionRepo
+	users    repository.UserRepo
+	sessions repository.SessionRepo
+
 	jwtSecret string
 	validate  *validator.Validate
+	register  repository.RegisterRepo
 }
 
 var ErrEmptyData = errors.New("empty data")
 
-func NewAuthService(users repository.UserRepo, sessions repository.SessionRepo, jwtSecret string) *AuthService {
-	return &AuthService{users: users, validate: validator.New(), sessions: sessions, jwtSecret: jwtSecret}
+func NewAuthService(users repository.UserRepo, sessions repository.SessionRepo, register repository.RegisterRepo, jwtSecret string) *AuthService {
+	return &AuthService{users: users, validate: validator.New(), sessions: sessions, jwtSecret: jwtSecret, register: register}
 }
 
 func (service *AuthService) Register(ctx context.Context, user domain.User) (userID uuid.UUID, accessToken domain.AccessToken, raw string, err error) {
@@ -41,7 +44,9 @@ func (service *AuthService) Register(ctx context.Context, user domain.User) (use
 	}
 	user.PasswordHash = string(passwordHash)
 
-	userID, err = service.users.Create(ctx, user)
+	userID, err = service.register.CreateUserWithOutbox(ctx, user, func(id uuid.UUID) (domain.OutboxEvent, error) {
+		return events.BuildUserRegistered(id, user.Username, user.Email)
+	})
 	if err != nil {
 		return uuid.Nil, domain.AccessToken{}, "", err
 	}
