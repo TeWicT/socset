@@ -27,7 +27,7 @@ type querier interface {
 const createUserQuery = `
 INSERT INTO users (email,username,password_hash)
 VALUES ($1, $2, $3)
-RETURNING id
+RETURNING id;
 `
 
 func (r *UserRepo) Create(ctx context.Context, user domain.User) (uuid.UUID, error) {
@@ -51,7 +51,7 @@ const findByLoginQuery = `
 SELECT id,email,username,password_hash
 FROM users
 WHERE email = $1 OR username = $1
-LIMIT 1
+LIMIT 1;
 `
 
 func (r *UserRepo) FindByLogin(ctx context.Context, login string) (domain.User, error) {

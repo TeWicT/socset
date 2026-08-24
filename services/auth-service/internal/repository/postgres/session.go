@@ -22,7 +22,7 @@ func CreateSessionRepo(pool *pgxpool.Pool) repository.SessionRepo {
 
 const createRefreshQuery = `
 INSERT INTO refresh_sessions (user_id,token_hash,expires_at)
-VALUES ($1, $2, $3)
+VALUES ($1, $2, $3);
 `
 
 func (r *SessionRepo) Create(ctx context.Context, userID uuid.UUID, tokenHash string, expiresAt time.Time) error {
@@ -37,7 +37,7 @@ const findByHashQuery = `
 SELECT id, user_id, expires_at
 FROM refresh_sessions
 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
-LIMIT 1
+LIMIT 1;
 `
 
 func (r *SessionRepo) FindByHash(ctx context.Context, tokenHash string) (session domain.Session, err error) {
@@ -55,7 +55,7 @@ func (r *SessionRepo) FindByHash(ctx context.Context, tokenHash string) (session
 const revokeQuery = `
 UPDATE refresh_sessions
 SET revoked_at = now()
-WHERE id = $1
+WHERE id = $1;
 `
 
 func (r *SessionRepo) Revoke(ctx context.Context, sessionID uuid.UUID) error {

@@ -3,6 +3,8 @@ package main
 import (
 	"auth-service/internal/config"
 	authv1 "auth-service/internal/gen/auth/v1"
+	"auth-service/internal/kafka"
+	"auth-service/internal/relay"
 	"auth-service/internal/repository/postgres"
 	"auth-service/internal/service"
 	"auth-service/internal/transport/grpcserver"
@@ -10,6 +12,9 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
@@ -26,7 +31,7 @@ func main() {
 	if err != nil {
 		log.Fatal("err load .env")
 	}
-	cfg, err := config.CreateConfig(os.Getenv("GRPC_ADDR"), os.Getenv("POSTGRES_URL"), os.Getenv("JWT_SECRET"))
+	cfg, err := config.CreateConfig(os.Getenv("GRPC_ADDR"), os.Getenv("POSTGRES_URL"), os.Getenv("JWT_SECRET"), os.Getenv("KAFKA_BROKERS"))
 	if err != nil {
 		log.Fatal("err load .env")
 	}
@@ -45,12 +50,20 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	//outbox
+	outboxRepo := postgres.CreateOutboxRepo(pool)
+	ctx2, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	producer := kafka.NewProducer(cfg.KafkaBroker)
+	defer producer.Close()
+	rel := relay.NewRelay(outboxRepo, 2*time.Second, producer)
+	defer stop()
+	go rel.Run(ctx2)
 
 	//grpc
 	grpcServer := grpc.NewServer()
 	userrepo := postgres.CreateUserRepo(pool)
 	sessionrepo := postgres.CreateSessionRepo(pool)
-	_ = postgres.CreateOutboxRepo(pool)
+
 	registerrepo := postgres.CreateRegisterRepo(pool)
 	authSvc := service.NewAuthService(userrepo, sessionrepo, registerrepo, cfg.JWTSecret)
 	srv := &grpcserver.Server{Auth: authSvc}

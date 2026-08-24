@@ -6,13 +6,14 @@ type Config struct {
 	GRPCAddr    string
 	PostgresURL string
 	JWTSecret   string
+	KafkaBroker string
 }
 
 var errLoadConfig = errors.New("err load config")
 
-func CreateConfig(http_addr, postgres_url, jwtSecret string) (*Config, error) {
-	if http_addr == "" || postgres_url == "" || len(jwtSecret) < 32 {
+func CreateConfig(httpAddr, postgresUrl, jwtSecret, kafkaBroker string) (*Config, error) {
+	if httpAddr == "" || postgresUrl == "" || len(jwtSecret) < 32 || kafkaBroker == "" {
 		return nil, errLoadConfig
 	}
-	return &Config{GRPCAddr: http_addr, PostgresURL: postgres_url, JWTSecret: jwtSecret}, nil
+	return &Config{GRPCAddr: httpAddr, PostgresURL: postgresUrl, JWTSecret: jwtSecret, KafkaBroker: kafkaBroker}, nil
 }
