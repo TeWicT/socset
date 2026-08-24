@@ -25,7 +25,7 @@
 **Сервисы:** api-gateway, auth-service, profile-service (минимум)
 
 - [x] Регистрация / логин / refresh / logout
-- [ ] JWT на gateway
+- [x] JWT на gateway
 - [ ] Создание профиля по `user.registered` (outbox → Kafka)
 - [ ] `GET /profiles/{id}`, `PATCH /profiles/me`
 - [ ] OTel + structured logs
