@@ -26,7 +26,7 @@
 
 - [x] Регистрация / логин / refresh / logout
 - [x] JWT на gateway
-- [ ] Создание профиля по `user.registered` (outbox → Kafka)
+- [x] Создание профиля по `user.registered` (outbox → Kafka)
 - [ ] `GET /profiles/{id}`, `PATCH /profiles/me`
 - [ ] OTel + structured logs
 - [ ] OpenAPI для auth и profile
