@@ -1,12 +1,14 @@
 package auth
 
 import (
+	"api-gateway/internal/denylist"
 	authv1 "api-gateway/internal/gen/auth/v1"
 	"api-gateway/internal/handlers/helpers"
 	"api-gateway/internal/middleware"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type RegisterHTTPRequest struct {
@@ -41,10 +43,11 @@ type LogoutHTTPRequest struct {
 }
 type Handler struct {
 	auth authv1.AuthServiceClient
+	deny *denylist.DenyList
 }
 
-func NewHandler(auth authv1.AuthServiceClient) *Handler {
-	return &Handler{auth: auth}
+func NewHandler(auth authv1.AuthServiceClient, deny *denylist.DenyList) *Handler {
+	return &Handler{auth: auth, deny: deny}
 }
 
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +133,25 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 		helpers.MapErrors(err, w)
 		return
 	}
+	jti, ok := middleware.JtiFromContext(r.Context())
+	if !ok {
+		w.WriteHeader(500)
+		return
+	}
+	exp, ok := middleware.ExpFromContext(r.Context())
+	if !ok {
+		w.WriteHeader(500)
+		return
+	}
+	ttl := time.Until(exp)
+	if ttl > 0 {
+		err = h.deny.Revoke(r.Context(), jti, ttl)
+		if err != nil {
+			w.WriteHeader(500)
+			return
+		}
+	}
+
 	helpers.WriteJSON(w, struct{}{})
 
 }

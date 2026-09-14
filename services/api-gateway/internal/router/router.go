@@ -1,6 +1,7 @@
 package router
 
 import (
+	"api-gateway/internal/denylist"
 	authv1 "api-gateway/internal/gen/auth/v1"
 	profilev1 "api-gateway/internal/gen/profile/v1"
 	"api-gateway/internal/handlers/auth"
@@ -10,20 +11,20 @@ import (
 	"net/http"
 )
 
-func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.ProfileServiceClient, jwtSecret string) *http.ServeMux {
+func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.ProfileServiceClient, jwtSecret string, deny *denylist.DenyList) *http.ServeMux {
 	mux := http.NewServeMux()
-	authHandler := auth.NewHandler(authclient)
+	authHandler := auth.NewHandler(authclient, deny)
 	profileHandler := profile.NewHandler(profileclient)
 
 	mux.HandleFunc("/", homeHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
-	mux.HandleFunc("/api/v1/auth/register", authHandler.Register)
-	mux.HandleFunc("/api/v1/auth/login", authHandler.Login)
-	mux.HandleFunc("/api/v1/auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("/api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
+	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("GET /api/v1/profiles/{user_id}", profileHandler.GetProfile)
-	jwtMw := middleware.JWT(jwtSecret)
+	jwtMw := middleware.JWT(jwtSecret, deny)
 	mux.Handle("GET /api/v1/auth/me", jwtMw(http.HandlerFunc(authHandler.Me)))
+	mux.Handle("POST /api/v1/auth/logout", jwtMw(http.HandlerFunc(authHandler.Logout)))
 	mux.Handle("GET /api/v1/profiles/me", jwtMw(http.HandlerFunc(profileHandler.GetProfileMe)))
 	mux.Handle("PATCH /api/v1/profiles/me", jwtMw(http.HandlerFunc(profileHandler.UpdateProfile)))
 	return mux
