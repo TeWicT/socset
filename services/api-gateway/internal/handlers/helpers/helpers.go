@@ -1,4 +1,4 @@
-package auth
+package helpers
 
 import (
 	"encoding/json"
@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func isPOSTAndJSON(w http.ResponseWriter, r *http.Request) bool {
-	if r.Method != "POST" {
+func IsMethodAndJSON(w http.ResponseWriter, r *http.Request, method string) bool {
+	if r.Method != method {
 		w.WriteHeader(405)
 		fmt.Fprint(w, "Неправильный метод")
 		return false
@@ -25,7 +25,7 @@ func isPOSTAndJSON(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func mapErrors(err error, w http.ResponseWriter) {
+func MapErrors(err error, w http.ResponseWriter) {
 	st, ok := status.FromError(err)
 	if ok && st.Code() == codes.InvalidArgument {
 		w.WriteHeader(400)
@@ -42,12 +42,17 @@ func mapErrors(err error, w http.ResponseWriter) {
 		fmt.Fprint(w, st.Message())
 		return
 	}
+	if ok && st.Code() == codes.NotFound {
+		w.WriteHeader(404)
+		fmt.Fprint(w, st.Message())
+		return
+	}
 	log.Printf("error: %v", err)
 	w.WriteHeader(500)
 	fmt.Fprint(w, "internal error")
 }
 
-func writeJSON(w http.ResponseWriter, response any) {
+func WriteJSON(w http.ResponseWriter, response any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err := json.NewEncoder(w).Encode(response)

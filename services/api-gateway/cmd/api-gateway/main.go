@@ -3,6 +3,7 @@ package main
 import (
 	"api-gateway/internal/config"
 	authv1 "api-gateway/internal/gen/auth/v1"
+	profilev1 "api-gateway/internal/gen/profile/v1"
 	"api-gateway/internal/router"
 	"log"
 	"net/http"
@@ -18,18 +19,24 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("JWT_SECRET"))
+	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("GRPC_ADDR_PROFILE"), os.Getenv("JWT_SECRET"))
 	if err != nil {
 		log.Fatal(err)
 	}
-	conn, err := grpc.NewClient(cfg.GRPCAddrAuth, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	connAuth, err := grpc.NewClient(cfg.GRPCAddrAuth, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer conn.Close()
-	authclient := authv1.NewAuthServiceClient(conn)
+	defer connAuth.Close()
+	connProfile, err := grpc.NewClient(cfg.GRPCAddrProfile, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer connProfile.Close()
 
-	err = http.ListenAndServe(cfg.HttpAddr, router.NewRouter(authclient, cfg.JWTSecret))
+	authclient := authv1.NewAuthServiceClient(connAuth)
+	profileclient := profilev1.NewProfileServiceClient(connProfile)
+	err = http.ListenAndServe(cfg.HttpAddr, router.NewRouter(authclient, profileclient, cfg.JWTSecret))
 	if err != nil {
 		log.Fatal(err)
 	}
