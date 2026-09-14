@@ -8,12 +8,16 @@ import (
 	"os/signal"
 	"profile-service/internal/config"
 	"profile-service/internal/consumer"
+	profilev1 "profile-service/internal/gen/profile/v1"
 	"profile-service/internal/repository/postgres"
+	"profile-service/internal/service"
+	"profile-service/internal/transport/grpcserver"
 	"syscall"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
 
 func main() {
@@ -44,10 +48,12 @@ func main() {
 	defer stop()
 	go c.Run(ctx2)
 	defer c.Close()
-
+	profileService := service.CreateProfileService(profilerepo)
+	srv := &grpcserver.Server{Profiles: profileService}
 	//grpc
 	grpcServer := grpc.NewServer()
-
+	profilev1.RegisterProfileServiceServer(grpcServer, srv)
+	reflection.Register(grpcServer)
 	lis, err := net.Listen("tcp", cfg.GrpcAddr)
 	if err != nil {
 		log.Fatal(err)

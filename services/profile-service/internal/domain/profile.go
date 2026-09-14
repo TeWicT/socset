@@ -17,4 +17,12 @@ type Profile struct {
 	UpdatedAt   time.Time
 }
 
+type Patch struct {
+	DisplayName *string
+	Bio         *string
+	AvatarKey   *string
+	IsPrivate   *bool
+}
+
 var ErrUserNotFound = errors.New("err profile not found")
+var ErrNothingToUpdate = errors.New("nothing to update")
