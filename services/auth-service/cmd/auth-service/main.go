@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health"
 	"google.golang.org/grpc/health/grpc_health_v1"
@@ -26,11 +25,6 @@ import (
 
 func main() {
 
-	// Config
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal("err load .env")
-	}
 	cfg, err := config.CreateConfig(os.Getenv("GRPC_ADDR"), os.Getenv("POSTGRES_URL"), os.Getenv("JWT_SECRET"), os.Getenv("KAFKA_BROKERS"))
 	if err != nil {
 		log.Fatal("err load .env")

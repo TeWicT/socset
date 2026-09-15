@@ -60,13 +60,72 @@ services:
     - redpanda 
     - start
     - --kafka-addr=internal://0.0.0.0:9092
-    - --advertise-kafka-addr=internal://localhost:9092
+    - --advertise-kafka-addr=internal://kafka:9092
     - --smp=1
     - --mode=dev-container
 
     volumes:
       - kafka_data:/var/lib/redpanda/data
 
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: deploy/docker/auth-service.Dockerfile
+    ports:
+      - "${auth_service_port}:8080"
+    environment:
+      - POSTGRES_URL=${postgres_url_for_auth_service}
+      - KAFKA_BROKERS=${kafka_brokers}
+      - JWT_SECRET=${jwt_secret}
+      - GRPC_ADDR=:8080
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - elasticsearch
+      - jaeger
+      - minio
+
+  profile-service:
+    build:
+      context: ../services/profile-service
+      dockerfile: deploy/docker/profile-service.Dockerfile
+    ports:
+      - "${profile_service_port}:8080"
+    environment:
+      - POSTGRES_URL=${postgres_url_for_profile_service}
+      - KAFKA_BROKERS=${kafka_brokers}
+      - GRPC_ADDR=:8080
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - elasticsearch
+      - jaeger
+      - minio
+    
+  api-gateway:
+    build:
+      context: ../services/api-gateway
+      dockerfile: deploy/docker/api-gateway.Dockerfile
+    ports:
+      - "${api_gateway_port}:8080"
+    environment:
+      - JWT_SECRET=${jwt_secret}
+      - REDIS_ADDR=${REDIS_ADDR}
+      - GRPC_ADDR_AUTH=${GRPC_ADDR_AUTH}
+      - GRPC_ADDR_PROFILE=${GRPC_ADDR_PROFILE}
+      - HTTP_ADDR=${HTTP_ADDR}
+    depends_on:
+      - auth-service
+      - profile-service
+      - postgres
+      - redis
+      - kafka
+      - elasticsearch
+      - jaeger
+      - minio
 
 volumes:
   postgres_data:

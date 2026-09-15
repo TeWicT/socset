@@ -11,17 +11,13 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
 	redis "github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
-	}
+
 	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("GRPC_ADDR_PROFILE"), os.Getenv("REDIS_ADDR"), os.Getenv("JWT_SECRET"))
 	if err != nil {
 		log.Fatal(err)

@@ -21,7 +21,7 @@ func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.Prof
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
-	mux.HandleFunc("GET /api/v1/profiles/{user_id}", profileHandler.GetProfile)
+	mux.Handle("GET /api/v1/profiles/{user_id}", middleware.JWTOptional(jwtSecret, deny)(http.HandlerFunc(profileHandler.GetProfile)))
 	jwtMw := middleware.JWT(jwtSecret, deny)
 	mux.Handle("GET /api/v1/auth/me", jwtMw(http.HandlerFunc(authHandler.Me)))
 	mux.Handle("POST /api/v1/auth/logout", jwtMw(http.HandlerFunc(authHandler.Logout)))

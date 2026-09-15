@@ -17,10 +17,6 @@ func NewHandler(profile profilev1.ProfileServiceClient) *Handler {
 	return &Handler{profile: profile}
 }
 
-type GetProfileHTTPRequest struct {
-	UserID string `json:"user_id"`
-}
-
 type GetProfileHTTPResponse struct {
 	UserID      string `json:"user_id"`
 	DisplayName string `json:"display_name"`
@@ -61,10 +57,7 @@ func (h *Handler) GetProfileMe(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetProfile(w http.ResponseWriter, r *http.Request) {
-	clientUserID, ok := middleware.UserIDFromContext(r.Context())
-	if !ok {
-		clientUserID = "unauthenticated"
-	}
+	clientUserID, _ := middleware.UserIDFromContext(r.Context())
 
 	userID := r.PathValue("user_id")
 	res, err := h.profile.GetProfile(r.Context(), &profilev1.GetProfileRequest{UserId: userID})

@@ -85,6 +85,43 @@ func JWT(secret string, deny *denylist.DenyList) func(http.Handler) http.Handler
 	}
 }
 
+func JWTOptional(secret string, deny *denylist.DenyList) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			auth := r.Header.Get("Authorization")
+			if auth == "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+			if !strings.HasPrefix(auth, "Bearer ") {
+
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			token := strings.TrimPrefix(auth, "Bearer ")
+			userID, jti, exp, err := ParseAccess(token, secret)
+			if err != nil {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			if jti == "" {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			ctx := context.WithValue(r.Context(), userIDKey, userID)
+			ctx = context.WithValue(ctx, jtiKey, jti)
+			ctx = context.WithValue(ctx, ttlKey, exp)
+			ok, err := deny.IsRevoked(ctx, jti)
+			if err != nil || ok {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			next.ServeHTTP(w, r.WithContext(ctx))
+
+		})
+	}
+}
+
 func UserIDFromContext(ctx context.Context) (string, bool) {
 	id, ok := ctx.Value(userIDKey).(string)
 	return id, ok
