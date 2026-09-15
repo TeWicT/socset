@@ -25,13 +25,14 @@
 **Сервисы:** api-gateway, auth-service, profile-service (минимум)
 
 - [x] Регистрация / логин / refresh / logout
-- [x] JWT на gateway
-- [x] Создание профиля по `user.registered` (outbox → Kafka)
-- [ ] `GET /profiles/{id}`, `PATCH /profiles/me`
+- [x] JWT на gateway (`jti` в access)
+- [x] Создание профиля по `user.registered` (outbox → Kafka → profile consumer)
+- [x] `GET /profiles/me`, `GET /profiles/{id}`, `PATCH /profiles/me` через gateway
+- [x] Logout под JWT + Redis denylist access (`jti`, TTL до `exp`) на api-gateway
 - [ ] OTel + structured logs
 - [ ] OpenAPI для auth и profile
 
-**Критерий:** пользователь регистрируется, логинится, видит/редактирует профиль через gateway.
+**Критерий:** пользователь регистрируется, логинится, видит/редактирует профиль через gateway; после logout access сразу отклоняется.
 
 ---
 
@@ -98,4 +99,4 @@
 
 ## Текущий фокус
 
-После документации — **Фаза 0 (каркас) → Фаза 1**.
+Фаза 1 почти закрыта по identity/profile. Дальше: OTel + structured logs и/или OpenAPI, либо переход к **Фазе 2**.
