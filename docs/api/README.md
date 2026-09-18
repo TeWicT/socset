@@ -1,6 +1,11 @@
 # API
 
-Публичный контракт клиентов. Источник правды по мере появления кода — OpenAPI в `schemas/openapi/`. Здесь — сводный черновик для проектирования.
+Публичный контракт клиентов. Источник правды по HTTP gateway — OpenAPI:
+
+- [`schemas/openapi/auth.v1.yaml`](../schemas/openapi/auth.v1.yaml)
+- [`schemas/openapi/profile.v1.yaml`](../schemas/openapi/profile.v1.yaml)
+
+Ниже — сводный черновик (в т.ч. эндпоинты будущих фаз).
 
 ## Общие правила
 
@@ -115,4 +120,4 @@ HTTP-статусы: `400` validation, `401` unauthenticated, `403` forbidden, `
 
 - [Сервисы](../services/)
 - [События](../events/catalog.md)
-- OpenAPI файлы — появятся в `schemas/openapi/` на фазах реализации
+- OpenAPI (фаза 1): `schemas/openapi/auth.v1.yaml`, `schemas/openapi/profile.v1.yaml`

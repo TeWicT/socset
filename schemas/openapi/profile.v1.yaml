@@ -1,0 +1,193 @@
+openapi: 3.0.3
+info:
+  title: Socset Profile API
+  description: |
+    Профили через api-gateway → profile-service (gRPC).
+    Профиль создаётся асинхронно по событию `user.registered` (Kafka).
+    Сразу после register `GET /profiles/me` может вернуть 404, пока consumer не отработает.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local api-gateway
+
+tags:
+  - name: profiles
+    description: Чтение и обновление профиля
+
+paths:
+  /profiles/me:
+    get:
+      tags: [profiles]
+      summary: Свой профиль
+      operationId: getProfileMe
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Полный профиль текущего пользователя
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Профиль ещё не создан (eventual consistency) или не найден
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+    patch:
+      tags: [profiles]
+      summary: Обновить свой профиль
+      description: |
+        Частичное обновление. Поля, которых нет в JSON, не меняются.
+        Хотя бы одно поле должно быть передано.
+      operationId: updateProfileMe
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            examples:
+              bioOnly:
+                summary: Только bio
+                value:
+                  bio: "Hello"
+              privacy:
+                summary: Приватность
+                value:
+                  is_private: true
+      responses:
+        "200":
+          description: Обновлённый профиль
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: Пустой patch / невалидный JSON
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          description: Профиль не найден
+          content:
+            text/plain:
+              schema:
+                type: string
+        "415":
+          description: Content-Type не application/json
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /profiles/{user_id}:
+    get:
+      tags: [profiles]
+      summary: Профиль по user_id
+      description: |
+        JWT опционален.
+        - Свой id + валидный Bearer → полный профиль (включая bio при is_private).
+        - Чужой / гость и is_private=true → bio скрыт (пустая строка).
+        - Битый или отозванный Bearer → 401.
+      operationId: getProfileById
+      security:
+        - {}
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Профиль (возможно с урезанным bio)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: Передан невалидный / отозванный access
+          content:
+            text/plain:
+              schema:
+                type: string
+        "404":
+          description: Профиль не найден
+          content:
+            text/plain:
+              schema:
+                type: string
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  responses:
+    Unauthorized:
+      description: Нет или невалидный / отозванный access
+      content:
+        text/plain:
+          schema:
+            type: string
+    InternalError:
+      description: Внутренняя ошибка
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: internal error
+
+  schemas:
+    Profile:
+      type: object
+      required: [user_id, display_name, bio, avatar_key, is_private]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+        bio:
+          type: string
+          description: Может быть пустым; у чужого private-профиля всегда ""
+        avatar_key:
+          type: string
+          description: Ключ объекта в MinIO; пока часто пустая строка
+        is_private:
+          type: boolean
+
+    UpdateProfileRequest:
+      type: object
+      description: Все поля опциональны; нужно хотя бы одно
+      properties:
+        display_name:
+          type: string
+        bio:
+          type: string
+        avatar_key:
+          type: string
+        is_private:
+          type: boolean
+      additionalProperties: false

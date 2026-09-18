@@ -5,9 +5,11 @@ import (
 	"api-gateway/internal/denylist"
 	authv1 "api-gateway/internal/gen/auth/v1"
 	profilev1 "api-gateway/internal/gen/profile/v1"
+	"api-gateway/internal/middleware"
 	"api-gateway/internal/router"
 	"context"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 
@@ -22,6 +24,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 	connAuth, err := grpc.NewClient(cfg.GRPCAddrAuth, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatal(err)
@@ -44,7 +47,7 @@ func main() {
 
 	authclient := authv1.NewAuthServiceClient(connAuth)
 	profileclient := profilev1.NewProfileServiceClient(connProfile)
-	err = http.ListenAndServe(cfg.HttpAddr, router.NewRouter(authclient, profileclient, cfg.JWTSecret, redisDenyList))
+	err = http.ListenAndServe(cfg.HttpAddr, middleware.RequestIDToContext(middleware.Logging(router.NewRouter(authclient, profileclient, cfg.JWTSecret, redisDenyList))))
 	if err != nil {
 		log.Fatal(err)
 	}
