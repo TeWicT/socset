@@ -1,9 +1,0 @@
-# Use this workspace to collaborate
-workspace:
-  id: 5b126b24-a06d-4851-8575-f278e9d9d5d2
-
-localResources:
-  specs:
-    - ../services/api-gateway/api/proto/auth/v1/auth.proto
-    - ../services/auth-service/api/proto/auth/v1/auth.proto
-    - ../services/profile-service/api/proto/profile/v1/profile.proto
