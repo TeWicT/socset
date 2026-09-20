@@ -20,7 +20,7 @@
 
 ## Фаза 1 — Identity skeleton
 
-**Статус:** В процессе
+**Статус:** Готова
 
 **Сервисы:** api-gateway, auth-service, profile-service (минимум)
 
@@ -29,8 +29,8 @@
 - [x] Создание профиля по `user.registered` (outbox → Kafka → profile consumer)
 - [x] `GET /profiles/me`, `GET /profiles/{id}`, `PATCH /profiles/me` через gateway
 - [x] Logout под JWT + Redis denylist access (`jti`, TTL до `exp`) на api-gateway
-- [ ] OTel + structured logs
-- [ ] OpenAPI для auth и profile
+- [x] OTel + structured logs
+- [x] OpenAPI для auth и profile
 
 **Критерий:** пользователь регистрируется, логинится, видит/редактирует профиль через gateway; после logout access сразу отклоняется.
 
@@ -38,12 +38,14 @@
 
 ## Фаза 2 — Социальный граф и стена
 
+**Статус:** В процессе
+
 **Сервисы:** social-graph-service, post-service
 
-- Заявки в друзья, список друзей, status
-- Посты на своей стене, лайки, комментарии
-- События `friend.*`, `post.*`, `comment.*`
-- Аватар через MinIO
+- [ ] Заявки в друзья, список друзей, status
+- [ ] Посты на своей стене, лайки, комментарии
+- [ ] События `friend.*`, `post.*`, `comment.*`
+- [ ] Аватар через MinIO
 
 **Критерий:** два пользователя дружатся; на стене есть пост с лайком и комментарием.
 

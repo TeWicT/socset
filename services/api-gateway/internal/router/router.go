@@ -16,7 +16,7 @@ func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.Prof
 	authHandler := auth.NewHandler(authclient, deny)
 	profileHandler := profile.NewHandler(profileclient)
 
-	mux.HandleFunc("/", homeHandler)
+	mux.HandleFunc("/{$}", homeHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)

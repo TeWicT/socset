@@ -117,6 +117,8 @@ services:
       - GRPC_ADDR_AUTH=${GRPC_ADDR_AUTH}
       - GRPC_ADDR_PROFILE=${GRPC_ADDR_PROFILE}
       - HTTP_ADDR=${HTTP_ADDR}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
     depends_on:
       - auth-service
       - profile-service
