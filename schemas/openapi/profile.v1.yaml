@@ -4,7 +4,7 @@ info:
   description: |
     Профили через api-gateway → profile-service (gRPC).
     Профиль создаётся асинхронно по событию `user.registered` (Kafka).
-    Сразу после register `GET /profiles/me` может вернуть 404, пока consumer не отработает.
+    Сразу после register `GET /profile/me` может вернуть 404, пока consumer не отработает.
   version: 1.0.0
 
 servers:
@@ -16,7 +16,7 @@ tags:
     description: Чтение и обновление профиля
 
 paths:
-  /profiles/me:
+  /profile/me:
     get:
       tags: [profiles]
       summary: Свой профиль
@@ -95,7 +95,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalError"
 
-  /profiles/{user_id}:
+  /profile/{user_id}:
     get:
       tags: [profiles]
       summary: Профиль по user_id
