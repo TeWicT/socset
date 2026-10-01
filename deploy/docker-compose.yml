@@ -10,7 +10,12 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./postgres/init:/docker-entrypoint-initdb.d
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${postgres_user} -d ${postgres_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   redis:
     image: redis:alpine
@@ -18,6 +23,12 @@ services:
     - "${redis_port}:6379"
     volumes:
       - redis_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 
   minio:
@@ -67,6 +78,13 @@ services:
     volumes:
       - kafka_data:/var/lib/redpanda/data
 
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy:.*true'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 
   auth-service:
     build:
@@ -80,12 +98,18 @@ services:
       - JWT_SECRET=${jwt_secret}
       - GRPC_ADDR=:8080
     depends_on:
-      - postgres
-      - redis
-      - kafka
-      - elasticsearch
-      - jaeger
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      minio:
+        condition: service_started
 
   profile-service:
     build:
@@ -98,12 +122,18 @@ services:
       - KAFKA_BROKERS=${kafka_brokers}
       - GRPC_ADDR=:8080
     depends_on:
-      - postgres
-      - redis
-      - kafka
-      - elasticsearch
-      - jaeger
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      minio:
+        condition: service_started
     
   api-gateway:
     build:
@@ -120,14 +150,47 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
     depends_on:
-      - auth-service
-      - profile-service
-      - postgres
-      - redis
-      - kafka
-      - elasticsearch
-      - jaeger
-      - minio
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      profile-service:
+        condition: service_started
+      elasticsearch:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      minio:
+        condition: service_started
+
+  social-graph-service:
+    build:
+      context: ../services/social-graph-service
+      dockerfile: deploy/docker/social-graph-service.Dockerfile
+    ports:
+      - "${social_graph_service_port}:8080"
+    environment:
+      - POSTGRES_URL=${postgres_url_for_social_graph_service}
+      - KAFKA_BROKERS=${kafka_brokers}
+      - GRPC_ADDR=:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      elasticsearch:
+        condition: service_started
+      jaeger:
+        condition: service_started
+      minio:
+        condition: service_started
+
 
 volumes:
   postgres_data:

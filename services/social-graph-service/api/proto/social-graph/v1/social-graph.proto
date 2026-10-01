@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package socialgraph.v1;
+
+option go_package = "social-graph-service/internal/gen/social-graph/v1;socialgraphv1";
+
+
+service SocialGraphService {
+  rpc CreateRequest(CreateRequestRequest) returns (CreateRequestResponse);
+  rpc AcceptRequest(AcceptRequestRequest) returns (AcceptRequestResponse);
+  rpc RejectRequest(RejectRequestRequest) returns (RejectRequestResponse);
+  rpc CancelRequest(CancelRequestRequest) returns (CancelRequestResponse);
+
+  rpc ListFriends(ListFriendsRequest) returns (ListFriendsResponse);
+  rpc ListIncoming(ListIncomingRequest) returns (ListIncomingResponse);
+  rpc ListOutgoing(ListOutgoingRequest) returns (ListOutgoingResponse);
+
+  rpc GetStatus(GetStatusRequest) returns (GetStatusResponse);
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+}
+
+// Статус заявки в friend_requests.
+enum RequestStatus {
+  REQUEST_STATUS_UNSPECIFIED = 0;
+  REQUEST_STATUS_PENDING = 1;
+  REQUEST_STATUS_ACCEPTED = 2;
+  REQUEST_STATUS_REJECTED = 3;
+  REQUEST_STATUS_CANCELED = 4;
+}
+
+// Статус отношений viewer → target.
+enum RelationStatus {
+  RELATION_STATUS_UNSPECIFIED = 0;
+  RELATION_STATUS_NONE = 1;
+  RELATION_STATUS_OUTGOING_REQUEST = 2;
+  RELATION_STATUS_INCOMING_REQUEST = 3;
+  RELATION_STATUS_FRIENDS = 4;
+}
+
+message FriendRequest {
+  string id = 1;
+  string from_user_id = 2;
+  string to_user_id = 3;
+  RequestStatus status = 4;
+  int64 created_at_unix = 5;
+  int64 updated_at_unix = 6;
+}
+
+message Friendship {
+  string user_id = 1; // друг относительно viewer
+  int64 created_at_unix = 2;
+}
+
+// --- Create ---
+
+message CreateRequestRequest {
+  string from_user_id = 1; // caller (из JWT на gateway)
+  string to_user_id = 2;
+}
+
+message CreateRequestResponse {
+  FriendRequest request = 1;
+}
+
+// --- Accept / Reject / Cancel ---
+
+message AcceptRequestRequest {
+  string request_id = 1;
+  string user_id = 2; // кто принимает (должен быть to_user_id)
+}
+
+message AcceptRequestResponse {
+  FriendRequest request = 1;
+}
+
+message RejectRequestRequest {
+  string request_id = 1;
+  string user_id = 2; // кто отклоняет (должен быть to_user_id)
+}
+
+message RejectRequestResponse {
+  FriendRequest request = 1;
+}
+
+message CancelRequestRequest {
+  string request_id = 1;
+  string user_id = 2; // кто отменяет (должен быть from_user_id)
+}
+
+message CancelRequestResponse {
+  FriendRequest request = 1;
+}
+
+// --- Lists ---
+
+message ListFriendsRequest {
+  string user_id = 1;
+}
+
+message ListFriendsResponse {
+  repeated Friendship friends = 1;
+}
+
+message ListIncomingRequest {
+  string user_id = 1;
+}
+
+message ListIncomingResponse {
+  repeated FriendRequest requests = 1;
+}
+
+message ListOutgoingRequest {
+  string user_id = 1;
+}
+
+message ListOutgoingResponse {
+  repeated FriendRequest requests = 1;
+}
+
+// --- Status / Remove ---
+
+message GetStatusRequest {
+  string viewer_user_id = 1;
+  string target_user_id = 2;
+}
+
+message GetStatusResponse {
+  RelationStatus status = 1;
+  // id pending-заявки, если status = outgoing/incoming; иначе пусто
+  string request_id = 2;
+}
+
+message RemoveFriendRequest {
+  string user_id = 1;
+  string friend_user_id = 2;
+}
+
+message RemoveFriendResponse {}
