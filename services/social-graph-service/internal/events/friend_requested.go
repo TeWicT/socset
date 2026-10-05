@@ -8,13 +8,16 @@ import (
 	"github.com/google/uuid"
 )
 
-type Envelope struct {
-	EventType      string                 `json:"event_type"`
-	EventVersion   int                    `json:"event_version"`
-	OccurredAt     time.Time              `json:"occurred_at"`
-	Producer       string                 `json:"producer"`
-	IdempotencyKey string                 `json:"idempotency_key"`
-	Payload        FriendRequestedPayload `json:"payload"`
+type Envelope[T AllowedPayloads] struct {
+	EventType      string    `json:"event_type"`
+	EventVersion   int       `json:"event_version"`
+	OccurredAt     time.Time `json:"occurred_at"`
+	Producer       string    `json:"producer"`
+	IdempotencyKey string    `json:"idempotency_key"`
+	Payload        T         `json:"payload"`
+}
+type AllowedPayloads interface {
+	FriendAcceptedPayload | FriendRequestedPayload
 }
 type FriendRequestedPayload struct {
 	RequestID  string `json:"request_id"`
@@ -24,7 +27,7 @@ type FriendRequestedPayload struct {
 
 func BuildFriendRequested(reqID, fromUserID, toUserID uuid.UUID) (domain.OutboxEvent, error) {
 	idempotencyKey := "friend.requested:" + reqID.String()
-	envelope := Envelope{
+	envelope := Envelope[FriendRequestedPayload]{
 		EventType:      "friend.requested",
 		EventVersion:   1,
 		OccurredAt:     time.Now().UTC(),

@@ -40,9 +40,36 @@ func (s *Server) CreateRequest(ctx context.Context, req *socialgraphv1.CreateReq
 		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
-	return &socialgraphv1.CreateRequestResponse{Request: &socialgraphv1.FriendRequest{Id: resp.ID.String(), FromUserId: resp.FromUserID.String(), ToUserId: resp.ToUserID.String(), Status: statusMapper(resp.Status), CreatedAtUnix: resp.CreatedAt.Unix(), UpdatedAtUnix: resp.UpdatedAt.Unix()}}, nil
+	return &socialgraphv1.CreateRequestResponse{Request: buildGRPCFriendRequest(resp)}, nil
 }
 
+func (s *Server) AcceptRequest(ctx context.Context, req *socialgraphv1.AcceptRequestRequest) (*socialgraphv1.AcceptRequestResponse, error) {
+	userID, err := uuid.Parse(req.UserId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid userID")
+	}
+	reqID, err := uuid.Parse(req.RequestId)
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid reqID")
+	}
+	res, err := s.GraphService.AcceptRequest(ctx, userID, reqID)
+	if err != nil {
+		if errors.Is(err, domain.ErrForbidden) {
+			return nil, status.Error(codes.PermissionDenied, "forbidden")
+		}
+		if errors.Is(err, domain.ErrNoPending) {
+			return nil, status.Error(codes.NotFound, "not found pending")
+		}
+		if errors.Is(err, domain.ErrNoRequest) {
+			return nil, status.Error(codes.NotFound, "not found request")
+		}
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	return &socialgraphv1.AcceptRequestResponse{Request: buildGRPCFriendRequest(res)}, nil
+}
+func buildGRPCFriendRequest(req *domain.FriendRequest) *socialgraphv1.FriendRequest {
+	return &socialgraphv1.FriendRequest{Id: req.ID.String(), FromUserId: req.FromUserID.String(), ToUserId: req.ToUserID.String(), Status: statusMapper(req.Status), CreatedAtUnix: req.CreatedAt.Unix(), UpdatedAtUnix: req.UpdatedAt.Unix()}
+}
 func statusMapper(status string) socialgraphv1.RequestStatus {
 	switch status {
 	case domain.RequestStatusAccepted:
