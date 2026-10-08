@@ -17,7 +17,7 @@ type Envelope[T AllowedPayloads] struct {
 	Payload        T         `json:"payload"`
 }
 type AllowedPayloads interface {
-	FriendAcceptedPayload | FriendRequestedPayload
+	FriendAcceptedPayload | FriendRequestedPayload | FriendCanceledPayload | FriendRejectedPayload
 }
 type FriendRequestedPayload struct {
 	RequestID  string `json:"request_id"`

@@ -2,13 +2,10 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"social-graph-service/internal/domain"
 	"social-graph-service/internal/repository"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -139,58 +136,79 @@ func (gr *GraphRepo) AcceptRequestWithOutbox(ctx context.Context, userID, reqID 
 	return updreq, nil
 }
 
-const insertQuery = `
-INSERT INTO outbox_events (topic, partition_key, payload)
-VALUES ($1, $2, $3);
-`
-
-type execer interface {
-	Exec(ctx context.Context, sql string, args ...any) (pgconn.CommandTag, error)
-}
-type queryRower interface {
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-}
-
-const findRequestWithIDQuery = `
-SELECT id, from_user_id, to_user_id, status, created_at, updated_at FROM friend_requests
-WHERE id = $1;
-`
-
-func findRequestByID(ctx context.Context, q queryRower, reqID uuid.UUID) (*domain.FriendRequest, error) {
-	var req domain.FriendRequest
-	err := q.QueryRow(ctx, findRequestWithIDQuery, reqID).Scan(&req.ID, &req.FromUserID, &req.ToUserID, &req.Status, &req.CreatedAt, &req.UpdatedAt)
+func (gr *GraphRepo) RejectRequestWithOutbox(ctx context.Context, userID, reqID uuid.UUID, makeEventFunc func(reqID, fromUserID, toUserID uuid.UUID) (domain.OutboxEvent, error)) (*domain.FriendRequest, error) {
+	tx, err := gr.pool.Begin(ctx)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrNoRequest
-		}
 		return nil, err
 	}
-	return &req, nil
-}
-
-const updateFriendRequestStatusQuery = `
-UPDATE friend_requests
-SET status = $1, updated_at = NOW()
-WHERE id = $2 AND status = 'pending'
-RETURNING id, from_user_id, to_user_id, status, created_at, updated_at;
-`
-
-func updateFriendRequest(ctx context.Context, q queryRower, status string, reqID uuid.UUID) (*domain.FriendRequest, error) {
-	var req domain.FriendRequest
-	err := q.QueryRow(ctx, updateFriendRequestStatusQuery, status, reqID).Scan(&req.ID, &req.FromUserID, &req.ToUserID, &req.Status, &req.CreatedAt, &req.UpdatedAt)
+	defer tx.Rollback(ctx)
+	req, err := findRequestByID(ctx, tx, reqID)
 	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, domain.ErrNoPending
-		}
 		return nil, err
 	}
-	return &req, nil
+	if req.ToUserID != userID {
+		return nil, domain.ErrForbidden
+	}
+	if req.Status == domain.RequestStatusRejected {
+		return req, nil
+	}
+	if req.Status != domain.RequestStatusPending {
+		return nil, domain.ErrNoPending
+	}
+	updreq, err := updateFriendRequest(ctx, tx, domain.RequestStatusRejected, reqID)
+	if err != nil {
+		return nil, err
+	}
+
+	event, err := makeEventFunc(updreq.ID, updreq.FromUserID, updreq.ToUserID)
+	if err != nil {
+		return nil, err
+	}
+	err = insertOutbox(ctx, tx, event)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return updreq, nil
 }
 
-func insertOutbox(ctx context.Context, q execer, event domain.OutboxEvent) error {
-	_, err := q.Exec(ctx, insertQuery, event.Topic, event.PartitionKey, event.Payload)
+func (gr *GraphRepo) CancelRequestWithOutbox(ctx context.Context, userID, reqID uuid.UUID, makeEventFunc func(reqID, fromUserID, toUserID uuid.UUID) (domain.OutboxEvent, error)) (*domain.FriendRequest, error) {
+	tx, err := gr.pool.Begin(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	defer tx.Rollback(ctx)
+	req, err := findRequestByID(ctx, tx, reqID)
+	if err != nil {
+		return nil, err
+	}
+	if req.FromUserID != userID {
+		return nil, domain.ErrForbidden
+	}
+	if req.Status == domain.RequestStatusCanceled {
+		return req, nil
+	}
+	if req.Status != domain.RequestStatusPending {
+		return nil, domain.ErrNoPending
+	}
+	updreq, err := updateFriendRequest(ctx, tx, domain.RequestStatusCanceled, reqID)
+	if err != nil {
+		return nil, err
+	}
+	event, err := makeEventFunc(updreq.ID, updreq.FromUserID, updreq.ToUserID)
+	if err != nil {
+		return nil, err
+	}
+	err = insertOutbox(ctx, tx, event)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return updreq, nil
 }
