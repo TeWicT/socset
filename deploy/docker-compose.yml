@@ -1,6 +1,15 @@
+x-time-settings: &time-settings
+  volumes:
+    - /etc/timezone:/etc/timezone:ro
+    - /etc/localtime:/etc/localtime:ro
+  environment:
+    - TZ=Europe/Moscow
+
+
 services:
   postgres:
     image: postgres:18-alpine
+    <<: *time-settings
     ports: 
     - "${postgres_port}:5432"
     environment:
@@ -19,6 +28,7 @@ services:
 
   redis:
     image: redis:alpine
+    <<: *time-settings
     ports: 
     - "${redis_port}:6379"
     volumes:
@@ -33,6 +43,7 @@ services:
 
   minio:
     image: minio/minio:latest
+    <<: *time-settings
     ports: 
     - "${minio_port}:9000"
     - "${minio_port_alt}:9001"
@@ -46,6 +57,7 @@ services:
 
   elasticsearch:
     image: elasticsearch:9.4.4
+    <<: *time-settings
     ports: 
       - "${elasticsearch_port}:9200"
     environment:
@@ -58,13 +70,14 @@ services:
 
   jaeger:
     image: jaegertracing/all-in-one:1.76.0
+    <<: *time-settings
     ports: 
     - "${jaeger_port}:16686"
     - "${jaeger_port_alt}:4317"
 
   kafka:
     image: redpandadata/redpanda:v26.1.15
-
+    <<: *time-settings
     ports: 
     - "${kafka_port}:9092"
     command: 
@@ -90,6 +103,7 @@ services:
     build:
       context: ../services/auth-service
       dockerfile: deploy/docker/auth-service.Dockerfile
+    <<: *time-settings
     ports:
       - "${auth_service_port}:8080"
     environment:
@@ -97,6 +111,8 @@ services:
       - KAFKA_BROKERS=${kafka_brokers}
       - JWT_SECRET=${jwt_secret}
       - GRPC_ADDR=:8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME_AUTH}
     depends_on:
       postgres:
         condition: service_healthy
@@ -115,11 +131,14 @@ services:
     build:
       context: ../services/profile-service
       dockerfile: deploy/docker/profile-service.Dockerfile
+    <<: *time-settings
     ports:
       - "${profile_service_port}:8080"
     environment:
       - POSTGRES_URL=${postgres_url_for_profile_service}
       - KAFKA_BROKERS=${kafka_brokers}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME_PROFILE}
       - GRPC_ADDR=:8080
     depends_on:
       postgres:
@@ -139,6 +158,7 @@ services:
     build:
       context: ../services/api-gateway
       dockerfile: deploy/docker/api-gateway.Dockerfile
+    <<: *time-settings
     ports:
       - "${api_gateway_port}:8080"
     environment:
@@ -174,12 +194,15 @@ services:
     build:
       context: ../services/social-graph-service
       dockerfile: deploy/docker/social-graph-service.Dockerfile
+    <<: *time-settings
     ports:
       - "${social_graph_service_port}:8080"
     environment:
       - POSTGRES_URL=${postgres_url_for_social_graph_service}
       - KAFKA_BROKERS=${kafka_brokers}
       - GRPC_ADDR=:8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME_SOCIAL_GRAPH}
     depends_on:
       postgres:
         condition: service_healthy
