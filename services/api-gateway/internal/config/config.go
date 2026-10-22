@@ -6,6 +6,7 @@ type Config struct {
 	HttpAddr                 string
 	GRPCAddrAuth             string
 	GRPCAddrProfile          string
+	GRPCAddrSocialGraph      string
 	RedisAddr                string
 	OtelExporterOtlpEndpoint string
 	OtelServiceName          string
@@ -14,9 +15,9 @@ type Config struct {
 
 var errLoadConfig = errors.New("err load config")
 
-func CreateConfig(httpAddr, grpcAddrAuth, grpcAddrProfile, redisAddr, otelExporterOtlpEndpoint, otelServiceName, jwtSecret string) (*Config, error) {
-	if httpAddr == "" || grpcAddrAuth == "" || grpcAddrProfile == "" || redisAddr == "" || otelExporterOtlpEndpoint == "" || otelServiceName == "" || len(jwtSecret) < 32 {
+func CreateConfig(httpAddr, grpcAddrAuth, grpcAddrProfile, grpcAddrSocialGraph, redisAddr, otelExporterOtlpEndpoint, otelServiceName, jwtSecret string) (*Config, error) {
+	if httpAddr == "" || grpcAddrAuth == "" || grpcAddrProfile == "" || grpcAddrSocialGraph == "" || redisAddr == "" || otelExporterOtlpEndpoint == "" || otelServiceName == "" || len(jwtSecret) < 32 {
 		return nil, errLoadConfig
 	}
-	return &Config{HttpAddr: httpAddr, GRPCAddrAuth: grpcAddrAuth, GRPCAddrProfile: grpcAddrProfile, RedisAddr: redisAddr, JWTSecret: jwtSecret, OtelExporterOtlpEndpoint: otelExporterOtlpEndpoint, OtelServiceName: otelServiceName}, nil
+	return &Config{HttpAddr: httpAddr, GRPCAddrAuth: grpcAddrAuth, GRPCAddrProfile: grpcAddrProfile, GRPCAddrSocialGraph: grpcAddrSocialGraph, RedisAddr: redisAddr, JWTSecret: jwtSecret, OtelExporterOtlpEndpoint: otelExporterOtlpEndpoint, OtelServiceName: otelServiceName}, nil
 }

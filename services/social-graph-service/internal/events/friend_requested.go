@@ -8,17 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-type Envelope[T AllowedPayloads] struct {
-	EventType      string    `json:"event_type"`
-	EventVersion   int       `json:"event_version"`
-	OccurredAt     time.Time `json:"occurred_at"`
-	Producer       string    `json:"producer"`
-	IdempotencyKey string    `json:"idempotency_key"`
-	Payload        T         `json:"payload"`
-}
-type AllowedPayloads interface {
-	FriendAcceptedPayload | FriendRequestedPayload | FriendCanceledPayload | FriendRejectedPayload
-}
+
 type FriendRequestedPayload struct {
 	RequestID  string `json:"request_id"`
 	FromUserID string `json:"from_user_id"`

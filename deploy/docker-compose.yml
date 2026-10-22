@@ -146,6 +146,7 @@ services:
       - REDIS_ADDR=${REDIS_ADDR}
       - GRPC_ADDR_AUTH=${GRPC_ADDR_AUTH}
       - GRPC_ADDR_PROFILE=${GRPC_ADDR_PROFILE}
+      - GRPC_ADDR_SOCIAL_GRAPH=${GRPC_ADDR_SOCIAL_GRAPH}
       - HTTP_ADDR=${HTTP_ADDR}
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}
@@ -159,6 +160,8 @@ services:
       auth-service:
         condition: service_started
       profile-service:
+        condition: service_started
+      social-graph-service:
         condition: service_started
       elasticsearch:
         condition: service_started

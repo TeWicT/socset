@@ -81,7 +81,7 @@ func (h *Handler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !helpers.IsMethodAndJSON(w, r, "PATCH") {
+	if !helpers.IsMethod(w, r, "PATCH") {
 		return
 	}
 	var req UpdateProfileHTTPRequest

@@ -5,6 +5,7 @@ import (
 	"api-gateway/internal/denylist"
 	authv1 "api-gateway/internal/gen/auth/v1"
 	profilev1 "api-gateway/internal/gen/profile/v1"
+	socialgraphv1 "api-gateway/internal/gen/social-graph/v1"
 	"api-gateway/internal/middleware"
 	"api-gateway/internal/router"
 	"api-gateway/internal/telemetry"
@@ -23,7 +24,7 @@ import (
 
 func main() {
 	//Config
-	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("GRPC_ADDR_PROFILE"), os.Getenv("REDIS_ADDR"), os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), os.Getenv("OTEL_SERVICE_NAME"), os.Getenv("JWT_SECRET"))
+	cfg, err := config.CreateConfig(os.Getenv("HTTP_ADDR"), os.Getenv("GRPC_ADDR_AUTH"), os.Getenv("GRPC_ADDR_PROFILE"), os.Getenv("GRPC_ADDR_SOCIAL_GRAPH"), os.Getenv("REDIS_ADDR"), os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"), os.Getenv("OTEL_SERVICE_NAME"), os.Getenv("JWT_SECRET"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -42,6 +43,11 @@ func main() {
 		log.Fatal(err)
 	}
 	defer connProfile.Close()
+	connSocialGraph, err := grpc.NewClient(cfg.GRPCAddrSocialGraph, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithStatsHandler(otelgrpc.NewClientHandler()))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer connSocialGraph.Close()
 
 	//Context
 	ctx := context.Background()
@@ -59,6 +65,7 @@ func main() {
 	//gRPC client
 	authclient := authv1.NewAuthServiceClient(connAuth)
 	profileclient := profilev1.NewProfileServiceClient(connProfile)
+	socialGraphClient := socialgraphv1.NewSocialGraphServiceClient(connSocialGraph)
 	//OpenTelemetry
 	shutdown, err := telemetry.Init(ctx, cfg.OtelExporterOtlpEndpoint, cfg.OtelServiceName)
 	if err != nil {
@@ -67,7 +74,7 @@ func main() {
 	defer shutdown(context.Background())
 
 	//Http
-	err = http.ListenAndServe(cfg.HttpAddr, otelhttp.NewHandler(middleware.RequestIDToContext(middleware.Logging(router.NewRouter(authclient, profileclient, cfg.JWTSecret, redisDenyList))), cfg.OtelServiceName))
+	err = http.ListenAndServe(cfg.HttpAddr, otelhttp.NewHandler(middleware.RequestIDToContext(middleware.Logging(router.NewRouter(authclient, profileclient, socialGraphClient, cfg.JWTSecret, redisDenyList))), cfg.OtelServiceName))
 	if err != nil {
 		log.Fatal(err)
 	}

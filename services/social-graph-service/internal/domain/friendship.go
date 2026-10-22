@@ -12,9 +12,19 @@ const RelationStatusOutgoingRequest = "outgoing_request"
 const RelationStatusIncomingRequest = "incoming_request"
 const RelationStatusFriends = "friends"
 
+type Relation struct {
+	Status string
+	ID     *uuid.UUID
+}
+
 type Friendship struct {
 	UserIDA   uuid.UUID
 	UserIDB   uuid.UUID
+	CreatedAt time.Time
+}
+
+type Friend struct {
+	UserID    uuid.UUID
 	CreatedAt time.Time
 }
 

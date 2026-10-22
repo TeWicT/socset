@@ -4,18 +4,20 @@ import (
 	"api-gateway/internal/denylist"
 	authv1 "api-gateway/internal/gen/auth/v1"
 	profilev1 "api-gateway/internal/gen/profile/v1"
+	socialgraphv1 "api-gateway/internal/gen/social-graph/v1"
 	"api-gateway/internal/handlers/auth"
 	"api-gateway/internal/handlers/profile"
+	socialgraph "api-gateway/internal/handlers/social-graph"
 	"api-gateway/internal/middleware"
 	"fmt"
 	"net/http"
 )
 
-func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.ProfileServiceClient, jwtSecret string, deny *denylist.DenyList) *http.ServeMux {
+func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.ProfileServiceClient, socialGraphClient socialgraphv1.SocialGraphServiceClient, jwtSecret string, deny *denylist.DenyList) *http.ServeMux {
 	mux := http.NewServeMux()
 	authHandler := auth.NewHandler(authclient, deny)
 	profileHandler := profile.NewHandler(profileclient)
-
+	socialGraphHandler := socialgraph.NewHandler(socialGraphClient)
 	mux.HandleFunc("/{$}", homeHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
@@ -27,6 +29,10 @@ func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.Prof
 	mux.Handle("POST /api/v1/auth/logout", jwtMw(http.HandlerFunc(authHandler.Logout)))
 	mux.Handle("GET /api/v1/profile/me", jwtMw(http.HandlerFunc(profileHandler.GetProfileMe)))
 	mux.Handle("PATCH /api/v1/profile/me", jwtMw(http.HandlerFunc(profileHandler.UpdateProfile)))
+	mux.Handle("POST /api/v1/friends/requests", jwtMw(http.HandlerFunc(socialGraphHandler.CreateFriendRequest)))
+	mux.Handle("POST /api/v1/friends/requests/{id}/accept", jwtMw(http.HandlerFunc(socialGraphHandler.AcceptFriendRequest)))
+	mux.Handle("POST /api/v1/friends/requests/{id}/reject", jwtMw(http.HandlerFunc(socialGraphHandler.RejectFriendRequest)))
+	mux.Handle("DELETE /api/v1/friends/requests/{id}", jwtMw(http.HandlerFunc(socialGraphHandler.CancelFriendRequest)))
 	return mux
 }
 
