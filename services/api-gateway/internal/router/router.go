@@ -33,6 +33,11 @@ func NewRouter(authclient authv1.AuthServiceClient, profileclient profilev1.Prof
 	mux.Handle("POST /api/v1/friends/requests/{id}/accept", jwtMw(http.HandlerFunc(socialGraphHandler.AcceptFriendRequest)))
 	mux.Handle("POST /api/v1/friends/requests/{id}/reject", jwtMw(http.HandlerFunc(socialGraphHandler.RejectFriendRequest)))
 	mux.Handle("DELETE /api/v1/friends/requests/{id}", jwtMw(http.HandlerFunc(socialGraphHandler.CancelFriendRequest)))
+	mux.Handle("GET /api/v1/friends", jwtMw(http.HandlerFunc(socialGraphHandler.ListFriendsHandler)))
+	mux.Handle("GET /api/v1/friends/requests/incoming", jwtMw(http.HandlerFunc(socialGraphHandler.ListIncomingHandler)))
+	mux.Handle("GET /api/v1/friends/requests/outgoing", jwtMw(http.HandlerFunc(socialGraphHandler.ListOutgoingHandler)))
+	mux.Handle("GET /api/v1/friends/status/{user_id}", jwtMw(http.HandlerFunc(socialGraphHandler.GetStatusHandler)))
+	mux.Handle("DELETE /api/v1/friends/{user_id}", jwtMw(http.HandlerFunc(socialGraphHandler.RemoveFriendHandler)))
 	return mux
 }
 

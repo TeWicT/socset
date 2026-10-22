@@ -27,3 +27,22 @@ type FriendRequest struct {
 	CreatedAtUnix int64  `json:"created_at_unix"`
 	UpdatedAtUnix int64  `json:"updated_at_unix"`
 }
+type ListFriendsHTTPResponse struct {
+	Friends []FriendShip `json:"friends"`
+}
+type FriendShip struct {
+	FriendID      string `json:"user_id"`
+	CreatedAtUnix int64  `json:"created_at_unix"`
+}
+
+type ListIncomingHTTPResponse struct {
+	Incoming []FriendRequest `json:"incoming"`
+}
+type ListOutgoingHTTPResponse struct {
+	Outgoing []FriendRequest `json:"outgoing"`
+}
+
+type GetStatusHTTPResponse struct {
+	Status string
+	ReqID  string
+}
