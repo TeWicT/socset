@@ -55,6 +55,7 @@ func (c *Consumer) Run(ctx context.Context) {
 				log.Println(err)
 				continue
 			}
+
 			carrier := propagation.MapCarrier{}
 			for _, h := range m.Headers {
 				carrier[h.Key] = string(h.Value)
@@ -90,6 +91,7 @@ func (c *Consumer) Run(ctx context.Context) {
 				log.Println(err)
 				continue
 			}
+
 			err = c.ProfileRepo.Create(msgCtx, domain.Profile{UserID: id, DisplayName: envelope.Payload.Username})
 			if err != nil {
 				span.RecordError(err)
@@ -101,7 +103,6 @@ func (c *Consumer) Run(ctx context.Context) {
 			span.End()
 		}
 	}
-
 }
 func (c *Consumer) Close() {
 	c.Reader.Close()
